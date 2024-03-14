@@ -28,4 +28,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorDetailsDto> handelResourceNotFoundException(ResourceNotFoundException e, WebRequest webRequest) {
         return new ResponseEntity<>(new ErrorDetailsDto(e.getMessage(), new Date(), webRequest.getDescription(true)), HttpStatus.NOT_FOUND);
     }
+
+    // IllegalArgumentException Handler
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorDetailsDto> handleIllegalArgumentException(IllegalArgumentException e, WebRequest webRequest) {
+        ErrorDetailsDto errorDetails = new ErrorDetailsDto(e.getMessage(), new Date(), webRequest.getDescription(true));
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
+    }
 }

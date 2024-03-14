@@ -1,9 +1,10 @@
 package com.example.BloggingApp.payload;
 
+import javax.validation.constraints.*;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import jakarta.validation.constraints.*;
 
 @Data
 @NoArgsConstructor
@@ -12,7 +13,7 @@ public class UserDto {
     private long id;
 
     @NotEmpty(message = "Name Field cannot be empty")
-    @Size(min = 2, max = 20, message = "Name should be between 2 and 25 characters")
+    @Size(min = 2, max = 20, message = "Name should be between 2 and 20 characters")
     private String name;
 
     @NotEmpty(message = "Email Field cannot be empty")
@@ -28,8 +29,9 @@ public class UserDto {
     @Size(min = 2, max = 140, message = "About should be between 2 and 140 characters")
     private String about;
 
-    @NotEmpty(message = "Password Field cannot be empty") @Size(min = 6, max = 12, message = "Password should be between 6 and 12 characters")
+    @NotEmpty(message = "Password Field cannot be empty")
+    @Size(min = 6, max = 12, message = "Password should be between 6 and 12 characters")
     // @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\",.<>/?]).{6,12}$",
-    //   message = "Password must contain at least one uppercase letter, one lowercase letter, and one special character and length of the password must be between 6 and 12 characters")
+    // message = "Password must contain at least one uppercase letter, one lowercase letter, and one special character and length of the password must be between 6 and 12 characters")
     private String password;
 }

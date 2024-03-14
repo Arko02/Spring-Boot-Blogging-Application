@@ -6,6 +6,8 @@ import com.example.BloggingApp.payload.PostDto;
 import com.example.BloggingApp.payload.PostResponseDto;
 import com.example.BloggingApp.repository.PostRepository;
 import com.example.BloggingApp.service.PostService;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,60 +19,83 @@ import java.util.stream.Collectors;
 
 @Service
 public class PostServiceImpl implements PostService {
+
+    private final ModelMapper modelMapper;
     private final PostRepository postRepository;
 
-    public PostServiceImpl(PostRepository postRepository) {
+    @Autowired
+    public PostServiceImpl(ModelMapper modelMapper, PostRepository postRepository) {
+        this.modelMapper = modelMapper;
         this.postRepository = postRepository;
     }
 
     @Override
     public PostResponseDto createPost(PostDto postDto) {
-        return this.mapToPostResponse(this.postRepository.save(this.mapToEntity(postDto)));
+        Post post = mapToEntity(postDto);
+        Post savedPost = postRepository.save(post);
+        return mapToPostResponse(savedPost);
     }
 
     @Override
     public PostResponseDto getPostById(long id) {
-        return this.mapToPostResponse(this.postRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Post Not Found With Id: " + id)));
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
+        return mapToPostResponse(post);
     }
 
     @Override
     public List<PostResponseDto> getAllPostsWithoutPaginationAndSorting() {
-        List<Post> all = this.postRepository.findAll();
-        return all.stream().map(post -> this.mapToPostResponse(post)).collect(Collectors.toList());
+        List<Post> allPosts = postRepository.findAll();
+        return allPosts.stream().map(this::mapToPostResponse).collect(Collectors.toList());
     }
 
     @Override
     public List<PostResponseDto> getAllPostsWithPaginationWithoutSorting(int pageNumber, int pageSize) {
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        Page<Post> all = this.postRepository.findAll(pageable);
-        List<Post> content = all.getContent();
-        return content.stream().map(post -> this.mapToPostResponse(post)).collect(Collectors.toList());
+        Page<Post> page = postRepository.findAll(pageable);
+        List<Post> posts = page.getContent();
+        return posts.stream()
+                .map(this::mapToPostResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<PostResponseDto> getAllPostsWithPaginationAndSorting(int pageNumber, int pageSize, String sortBy, String sortDirection) {
-        Sort sortOrders = Sort.by(sortDirection.equalsIgnoreCase("asc") ? Sort.Order.asc(sortBy) : Sort.Order.desc(sortBy));
-        Pageable pageable = PageRequest.of(pageNumber, pageSize, sortOrders);
-        Page<Post> all = this.postRepository.findAll(pageable);
-        List<Post> content = all.getContent();
-        return content.stream().map(post -> this.mapToPostResponse(post)).collect(Collectors.toList());
+        Sort sort = Sort.by(sortDirection.equalsIgnoreCase("asc") ? Sort.Order.asc(sortBy) : Sort.Order.desc(sortBy));
+        Pageable pageable = PageRequest.of(pageNumber, pageSize, sort);
+        Page<Post> page = postRepository.findAll(pageable);
+        List<Post> posts = page.getContent();
+        return posts.stream().map(this::mapToPostResponse).collect(Collectors.toList());
     }
 
     @Override
     public PostResponseDto updatePostById(long id, PostDto postDto) {
-        Post post = this.postRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Update Post Operation Is Failed Because Post Not Found with Id: " + id));
-        post.setId(postDto.getId());
-        post.setTitle(postDto.getTitle());
-        post.setDescription(postDto.getDescription());
-        post.setContent(postDto.getContent());
-        return this.mapToPostResponse(this.postRepository.save(post));
+        Post existingPost = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + id));
+
+        // Update the existing post entity
+        existingPost.setTitle(postDto.getTitle());
+        existingPost.setDescription(postDto.getDescription());
+        existingPost.setContent(postDto.getContent());
+
+        // Save the updated post entity
+        Post updatedPost = postRepository.save(existingPost);
+        return mapToPostResponse(updatedPost);
     }
 
-    Post mapToEntity(PostDto postDto) {
-        return new Post(postDto.getId(), postDto.getTitle(), postDto.getDescription(), postDto.getContent());
+    @Override
+    public void deletePostById(long id) {
+        if (!postRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Post not found with id: " + id);
+        }
+        postRepository.deleteById(id);
     }
 
-    PostResponseDto mapToPostResponse(Post post) {
-        return new PostResponseDto(post.getId(), post.getTitle(), post.getDescription(), post.getContent());
+    private Post mapToEntity(PostDto postDto) {
+        return modelMapper.map(postDto, Post.class);
+    }
+
+    private PostResponseDto mapToPostResponse(Post post) {
+        return modelMapper.map(post, PostResponseDto.class);
     }
 }
